@@ -1,0 +1,117 @@
+:root {
+  --bg: #0f1115; --panel: #191c23; --panel2: #222631; --text: #eef1f6; --muted: #8b93a7;
+  --accent: #ffcc00; --green: #22c55e; --red: #ef4444; --blue: #3b82f6; --border: #2c3140;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); }
+header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+header h1 { font-size: 18px; margin: 0; color: var(--accent); letter-spacing: .5px; }
+nav { display: flex; gap: 6px; flex-wrap: wrap; }
+nav button, .btn { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 14px; cursor: pointer; }
+nav button.active { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 600; }
+.btn:hover, nav button:hover { filter: brightness(1.15); }
+.btn.primary { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 600; }
+.btn.danger { background: transparent; color: var(--red); border-color: var(--red); }
+.btn.small { padding: 4px 10px; font-size: 12px; }
+.btn.on { background: var(--blue); border-color: var(--blue); }
+.spacer { flex: 1; }
+main { padding: 16px; max-width: 1400px; margin: 0 auto; }
+section { display: none; }
+section.active { display: block; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.card h3 { margin: 20px 0 10px; font-size: 14px; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+select, input[type=text], input[type=date], input[type=number] { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 16px; min-width: 170px; }
+input[type=number] { min-width: 0; width: 100%; }
+.check { flex-direction: row; align-items: center; gap: 8px; font-size: 15px; color: var(--text); }
+.check input { width: 20px; height: 20px; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
+.empty { color: var(--muted); font-style: italic; }
+
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.seg button { background: var(--panel2); color: var(--text); border: 0; padding: 12px 20px; font-size: 16px; cursor: pointer; }
+.seg button.active { background: var(--blue); font-weight: 600; }
+
+/* Cronômetro manual */
+#timerBox { text-align: center; padding: 24px 16px; }
+#timerDisplay, #autoDisplay { font-family: "Consolas", "Courier New", monospace; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+#timerDisplay { font-size: clamp(80px, 18vw, 200px); }
+.running { color: var(--accent); }
+.armed { color: var(--red); }
+.record { color: var(--green); animation: pulse .6s ease-in-out 3; }
+@keyframes pulse { 50% { transform: scale(1.06); } }
+#timerStatus, #autoStatus { font-size: 18px; color: var(--muted); margin: 8px 0 20px; min-height: 26px; }
+.bigBtn { width: 100%; max-width: 640px; height: 140px; font-size: 40px; font-weight: 800; border-radius: 18px; border: 0; cursor: pointer; background: var(--green); color: #fff; touch-action: manipulation; user-select: none; }
+.bigBtn.stop { background: var(--red); }
+.bigBtn.armed { background: #7c2d12; color: #fff; animation: none; }
+.bigBtn.busy { background: var(--panel2); color: var(--muted); }
+#lastBox { margin-top: 16px; display: none; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--panel2); border: 1px solid var(--border); color: var(--muted); }
+.badge.inv { color: var(--red); border-color: var(--red); }
+.badge.rec { color: var(--green); border-color: var(--green); }
+
+/* Automático */
+.autoGrid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr); gap: 16px; }
+@media (max-width: 900px) { .autoGrid { grid-template-columns: 1fr; } }
+.videoWrap { position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9; }
+.videoWrap video, .videoWrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.videoWrap canvas { pointer-events: none; }
+.videoWrap.drawing canvas { pointer-events: auto; cursor: crosshair; }
+#camOff { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 20px; }
+.autoTimer { text-align: center; }
+#autoTeam { font-size: 20px; min-height: 28px; }
+#autoDisplay { font-size: clamp(70px, 10vw, 160px); margin-top: 8px; }
+.ind { padding: 6px 12px; border-radius: 999px; font-size: 13px; background: var(--panel2); border: 1px solid var(--border); color: var(--muted); }
+.ind.ok { background: rgba(34, 197, 94, .15); border-color: var(--green); color: var(--green); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.tile { background: var(--panel2); border: 2px solid var(--border); border-radius: 12px; padding: 16px 10px; font-size: 18px; font-weight: 700; color: var(--text); cursor: pointer; text-align: center; }
+.tile small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+.tile.active { border-color: var(--accent); background: #2a2410; }
+#autoConfig summary { cursor: pointer; font-size: 15px; color: var(--muted); font-weight: 600; }
+.cfgGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 14px; align-items: end; }
+.meter { position: relative; height: 18px; background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+#micBar { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--green); }
+#micThr { position: absolute; top: -2px; bottom: -2px; width: 3px; background: var(--accent); }
+
+/* Ranking */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.champ { border: 2px solid var(--accent); background: linear-gradient(135deg, #2a2410, var(--panel)); }
+.champ .time { font-size: 56px; font-weight: 800; color: var(--accent); font-family: Consolas, monospace; }
+.champ .team { font-size: 20px; margin-top: 6px; }
+.champ .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+td.num { font-family: Consolas, monospace; font-size: 16px; }
+tr.invalid td { color: var(--muted); text-decoration: line-through; }
+tr.invalid td.actions { text-decoration: none; }
+.pos1 td:first-child { color: var(--accent); font-weight: 800; }
+
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { background: var(--panel2); border: 1px solid var(--border); border-radius: 999px; padding: 6px 8px 6px 14px; display: flex; align-items: center; gap: 8px; }
+.chip button { background: transparent; border: 0; color: var(--red); cursor: pointer; font-size: 16px; }
+
+/* Modal de vídeo */
+#modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .8); display: flex; align-items: center; justify-content: center; z-index: 10; }
+#modal[hidden] { display: none; }
+.modalBox { background: var(--panel); border-radius: 12px; padding: 14px; width: min(960px, 95vw); }
+#modalVideo { width: 100%; margin-top: 10px; border-radius: 8px; background: #000; }
+
+/* Modo TV */
+body.tv header, body.tv main { display: none; }
+#tv { display: none; padding: 24px; min-height: 100vh; }
+body.tv #tv { display: grid; grid-template-rows: auto 1fr; gap: 24px; }
+#tvLive { text-align: center; background: var(--panel); border-radius: 16px; padding: 20px; border: 1px solid var(--border); }
+#tvLive .lbl { font-size: 24px; color: var(--muted); }
+#tvTimer { font-family: Consolas, monospace; font-size: 16vw; font-weight: 800; line-height: 1; }
+#tvTeam { font-size: 28px; margin-top: 8px; }
+#tvBoards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+#tvBoards .card { font-size: 22px; }
+#tvBoards td { font-size: 22px; padding: 10px; }
+#tvBoards td.num { font-size: 28px; }
+#tvBoards h2 { font-size: 24px; color: var(--accent); }
+#tvExit { position: fixed; top: 8px; right: 8px; opacity: .25; }
+#tvExit:hover { opacity: 1; }

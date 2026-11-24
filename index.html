@@ -4,110 +4,102 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Pit Stop – Cronômetro de Treino</title>
-<style>
-  :root {
-    --bg: #0f1115; --panel: #191c23; --panel2: #222631; --text: #eef1f6; --muted: #8b93a7;
-    --accent: #ffcc00; --green: #22c55e; --red: #ef4444; --blue: #3b82f6; --border: #2c3140;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); }
-  header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-  header h1 { font-size: 18px; margin: 0; color: var(--accent); letter-spacing: .5px; }
-  nav { display: flex; gap: 6px; flex-wrap: wrap; }
-  nav button, .btn { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 14px; cursor: pointer; }
-  nav button.active { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 600; }
-  .btn:hover, nav button:hover { filter: brightness(1.15); }
-  .btn.primary { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 600; }
-  .btn.danger { background: transparent; color: var(--red); border-color: var(--red); }
-  .btn.small { padding: 4px 10px; font-size: 12px; }
-  .spacer { flex: 1; }
-  main { padding: 16px; max-width: 1200px; margin: 0 auto; }
-  section { display: none; }
-  section.active { display: block; }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-  .card h2 { margin: 0 0 12px; font-size: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
-  label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
-  select, input[type=text], input[type=date] { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 16px; min-width: 170px; }
-  .check { flex-direction: row; align-items: center; gap: 8px; font-size: 15px; color: var(--text); }
-  .check input { width: 20px; height: 20px; }
-
-  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-  .seg button { background: var(--panel2); color: var(--text); border: 0; padding: 12px 20px; font-size: 16px; cursor: pointer; }
-  .seg button.active { background: var(--blue); font-weight: 600; }
-
-  #timerBox { text-align: center; padding: 24px 16px; }
-  #timerDisplay { font-family: "Consolas", "Courier New", monospace; font-size: clamp(80px, 18vw, 200px); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-  #timerDisplay.running { color: var(--accent); }
-  #timerDisplay.armed { color: var(--red); }
-  #timerDisplay.record { color: var(--green); animation: pulse .6s ease-in-out 3; }
-  @keyframes pulse { 50% { transform: scale(1.06); } }
-  #timerStatus { font-size: 18px; color: var(--muted); margin: 8px 0 20px; min-height: 26px; }
-  #bigBtn { width: 100%; max-width: 640px; height: 140px; font-size: 40px; font-weight: 800; border-radius: 18px; border: 0; cursor: pointer; background: var(--green); color: #fff; touch-action: manipulation; user-select: none; }
-  #bigBtn.stop { background: var(--red); }
-  #bigBtn.armed { background: #7c2d12; }
-  #bigBtn:disabled { opacity: .4; cursor: not-allowed; }
-  .hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
-  #lastBox { margin-top: 16px; display: none; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--panel2); border: 1px solid var(--border); color: var(--muted); }
-  .badge.inv { color: var(--red); border-color: var(--red); }
-  .badge.rec { color: var(--green); border-color: var(--green); }
-
-  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
-  .champ { border: 2px solid var(--accent); background: linear-gradient(135deg, #2a2410, var(--panel)); }
-  .champ .time { font-size: 56px; font-weight: 800; color: var(--accent); font-family: Consolas, monospace; }
-  .champ .team { font-size: 20px; margin-top: 6px; }
-  .champ .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
-  .empty { color: var(--muted); font-style: italic; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
-  td.num { font-family: Consolas, monospace; font-size: 16px; }
-  tr.invalid td { color: var(--muted); text-decoration: line-through; }
-  tr.invalid td.actions { text-decoration: none; }
-  .pos1 td:first-child { color: var(--accent); font-weight: 800; }
-
-  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip { background: var(--panel2); border: 1px solid var(--border); border-radius: 999px; padding: 6px 8px 6px 14px; display: flex; align-items: center; gap: 8px; }
-  .chip button { background: transparent; border: 0; color: var(--red); cursor: pointer; font-size: 16px; }
-
-  /* Modo TV */
-  body.tv header, body.tv main { display: none; }
-  #tv { display: none; padding: 24px; min-height: 100vh; }
-  body.tv #tv { display: grid; grid-template-rows: auto 1fr; gap: 24px; }
-  #tvLive { text-align: center; background: var(--panel); border-radius: 16px; padding: 20px; border: 1px solid var(--border); }
-  #tvLive .lbl { font-size: 24px; color: var(--muted); }
-  #tvTimer { font-family: Consolas, monospace; font-size: 16vw; font-weight: 800; line-height: 1; }
-  #tvTimer.running { color: var(--accent); }
-  #tvTimer.record { color: var(--green); }
-  #tvTeam { font-size: 28px; margin-top: 8px; }
-  #tvBoards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  #tvBoards .card { font-size: 22px; }
-  #tvBoards td { font-size: 22px; padding: 10px; }
-  #tvBoards td.num { font-size: 28px; }
-  #tvBoards h2 { font-size: 24px; color: var(--accent); }
-  #tvExit { position: fixed; top: 8px; right: 8px; opacity: .25; }
-  #tvExit:hover { opacity: 1; }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header>
   <h1>PIT STOP · TREINO</h1>
   <nav>
-    <button data-tab="cronometro" class="active">Cronômetro</button>
+    <button data-tab="automatico" class="active">Automático</button>
+    <button data-tab="cronometro">Manual</button>
     <button data-tab="ranking">Ranking do dia</button>
     <button data-tab="historico">Histórico</button>
-    <button data-tab="mecanicos">Mecânicos</button>
+    <button data-tab="mecanicos">Mecânicos e equipes</button>
   </nav>
   <div class="spacer"></div>
   <button class="btn" id="openTv">Abrir modo TV</button>
 </header>
 
 <main>
-  <!-- CRONÔMETRO -->
-  <section id="cronometro" class="active">
+  <!-- AUTOMÁTICO -->
+  <section id="automatico" class="active">
+    <div class="autoGrid">
+      <div class="card">
+        <div class="videoWrap" id="videoWrap">
+          <video id="autoVideo" playsinline muted></video>
+          <canvas id="autoCanvas"></canvas>
+          <div id="camOff">Câmera desligada</div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="camStart">Ligar câmera</button>
+          <button class="btn" id="camStop">Desligar</button>
+          <div class="spacer"></div>
+          <span class="ind" id="indPist">Pistoleiro</span>
+          <span class="ind" id="indBraco">Braço levantado</span>
+          <span class="ind" id="indPistola">Pistola ouvida</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="card autoTimer">
+          <div id="autoTeam">Toque no nome da sua equipe</div>
+          <div id="autoDisplay">0,00</div>
+          <div id="autoStatus"></div>
+          <button id="autoBtn" class="bigBtn">PRONTO</button>
+          <div class="hint">Toque em PRONTO (ou aperte o botão/controle). Saia no bipe. O tempo para quando o pistoleiro levantar o braço.</div>
+        </div>
+        <div class="card">
+          <h2>Equipe</h2>
+          <div class="tiles" id="teamTiles"></div>
+        </div>
+      </div>
+    </div>
+
+    <details class="card" id="autoConfig">
+      <summary>Configuração (engenharia)</summary>
+      <div class="cfgGrid">
+        <label>Câmera <select id="cfgCam"></select></label>
+        <label>Microfone <select id="cfgMic"></select></label>
+        <label>Detector de postura
+          <select id="cfgModel"><option value="lite">Rápido (tablet/notebook simples)</option><option value="full">Preciso (notebook bom)</option></select>
+        </label>
+        <label>Fim do tempo quando o pulso passar
+          <select id="cfgArm"><option value="cabeca">acima da cabeça</option><option value="ombro">acima do ombro</option></select>
+        </label>
+        <label>Confirmação (quadros seguidos) <input type="number" id="cfgHold" min="1" max="15"></label>
+        <label>Tempo mínimo válido (s) <input type="number" id="cfgMinS" min="0" step="0.1"></label>
+        <label>Tempo máximo / desiste (s) <input type="number" id="cfgMaxS" min="3" step="1"></label>
+        <label>Bipe após PRONTO: de (s) <input type="number" id="cfgDelayMin" min="0.5" step="0.1"></label>
+        <label>até (s) <input type="number" id="cfgDelayMax" min="0.5" step="0.1"></label>
+        <label>Rearme automático (s, 0 = desligado) <input type="number" id="cfgRearm" min="0" step="1"></label>
+        <label>Ajuste fino do tempo (ms) <input type="number" id="cfgOffset" step="10"></label>
+        <label class="check"><input type="checkbox" id="cfgClips"> Salvar vídeo de cada tentativa</label>
+      </div>
+
+      <h3>Som da pistola</h3>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="cfgGun"> Só aceitar tentativa se a pistola for ouvida</label>
+        <label style="flex:1;min-width:260px">Sensibilidade (linha amarela = limite)
+          <div class="meter"><div id="micBar"></div><div id="micThr"></div></div>
+          <input type="range" id="cfgGunThr" min="0" max="100">
+        </label>
+      </div>
+      <div class="hint">Acione a pistola perto do microfone: a barra deve passar da linha amarela. Com a pistola parada, deve ficar abaixo.</div>
+
+      <h3>Posição padrão da câmera</h3>
+      <div class="row">
+        <button class="btn" id="roiDraw">Desenhar zona do pistoleiro</button>
+        <button class="btn" id="roiClear">Limpar zona</button>
+        <button class="btn" id="refSave">Salvar enquadramento atual como padrão</button>
+        <label class="check"><input type="checkbox" id="cfgShowRef"> Mostrar guia de alinhamento</label>
+      </div>
+      <div class="hint">A zona amarela é onde o pistoleiro trabalha: pessoas fora dela são ignoradas. O guia de alinhamento sobrepõe a foto padrão à imagem ao vivo para o estagiário posicionar a câmera sempre igual.</div>
+    </details>
+  </section>
+
+  <!-- MANUAL -->
+  <section id="cronometro">
     <div class="card">
       <h2>Procedimento</h2>
       <div class="row" style="margin-bottom:14px">
@@ -115,7 +107,7 @@
           <button data-tipo="1" class="active">Tipo 1 · 1 pneu</button>
           <button data-tipo="2">Tipo 2 · 2 pneus</button>
         </div>
-        <div class="seg" id="modoSeg" title="Como o cronômetro começa">
+        <div class="seg" id="modoSeg">
           <button data-modo="manual" class="active">Início manual</button>
           <button data-modo="sinal">Início por sinal sonoro</button>
         </div>
@@ -131,7 +123,7 @@
     <div class="card" id="timerBox">
       <div id="timerDisplay">0,00</div>
       <div id="timerStatus"></div>
-      <button id="bigBtn">INICIAR</button>
+      <button id="bigBtn" class="bigBtn">INICIAR</button>
       <div class="hint" id="hint"></div>
       <div id="lastBox"></div>
     </div>
@@ -162,12 +154,26 @@
       <button class="btn primary" id="exportCsv">Exportar para Excel (CSV)</button>
       <button class="btn" id="exportJson">Backup</button>
       <label class="btn" style="flex-direction:row;color:var(--text)">Restaurar backup<input type="file" id="importJson" accept=".json" hidden></label>
+      <button class="btn danger" id="clearVideos">Apagar vídeos</button>
     </div>
     <div class="card"><div id="histTable"></div></div>
   </section>
 
-  <!-- MECÂNICOS -->
+  <!-- MECÂNICOS E EQUIPES -->
   <section id="mecanicos">
+    <div class="card">
+      <h2>Equipes</h2>
+      <div class="row" style="margin-bottom:14px">
+        <label>Nome da equipe <input type="text" id="eqNome" placeholder="Ex.: Equipe Azul"></label>
+        <label>Tipo <select id="eqTipo"><option value="1">Tipo 1 · 1 pneu</option><option value="2">Tipo 2 · 2 pneus</option></select></label>
+        <label>Pistoleiro <select id="eqPist"></select></label>
+        <label><span id="eqLblEnc1">Encaixador</span> <select id="eqEnc1"></select></label>
+        <label id="eqWrapEnc2">Encaixador 2 <select id="eqEnc2"></select></label>
+        <button class="btn primary" id="eqAdd">Criar equipe</button>
+      </div>
+      <div class="hint" id="eqHint">No Tipo 2, deixe o Encaixador 2 vazio para equipes com encaixador único.</div>
+      <div id="eqList" style="margin-top:12px"></div>
+    </div>
     <div class="card">
       <h2>Mecânicos cadastrados</h2>
       <div class="row" style="margin-bottom:14px">
@@ -190,395 +196,14 @@
   <div id="tvBoards"></div>
 </div>
 
-<script>
-const STORAGE_KEY = 'pitstop-cronometro-v1';
-const MECANICOS_PADRAO = ['Henrique', 'Reinaldo', 'Eder', 'Fabiano'];
-const TIPOS = { 1: 'Tipo 1 · 1 pneu', 2: 'Tipo 2 · 2 pneus' };
-const SINAL_ATRASO_MIN = 1500, SINAL_ATRASO_MAX = 3500;
+<!-- VÍDEO DA TENTATIVA -->
+<div id="modal" hidden>
+  <div class="modalBox">
+    <div class="row"><b id="modalTitle"></b><div class="spacer"></div><button class="btn small" id="modalClose">Fechar</button></div>
+    <video id="modalVideo" controls playsinline></video>
+  </div>
+</div>
 
-const $ = s => document.querySelector(s);
-const channel = 'BroadcastChannel' in window ? new BroadcastChannel('pitstop') : null;
-
-// ---------- Dados ----------
-function load() {
-  try {
-    const d = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (d && Array.isArray(d.tentativas)) return d;
-  } catch {}
-  return { mecanicos: [...MECANICOS_PADRAO], tentativas: [], sel: {} };
-}
-let db = load();
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-  channel && channel.postMessage({ kind: 'data' });
-}
-
-const sel = Object.assign({ tipo: 1, modo: 'manual', pist: '', enc1: '', enc2: '', unico: false }, db.sel);
-
-// ---------- Utilidades ----------
-const fmt = ms => (ms / 1000).toFixed(2).replace('.', ',');
-const pad = n => String(n).padStart(2, '0');
-const dayKey = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-const hora = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
-const hoje = () => dayKey(Date.now());
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-
-function encaixadores(t) { return t.enc2 ? [t.enc1, t.enc2] : [t.enc1]; }
-function equipeTxt(t) {
-  if (t.tipo === 1) return `P: ${t.pist} · E: ${t.enc1}`;
-  return t.enc2 ? `P: ${t.pist} · E1: ${t.enc1} · E2: ${t.enc2}` : `P: ${t.pist} · E: ${t.enc1} (único)`;
-}
-function tentativasDoDia(dia, tipo) {
-  return db.tentativas.filter(t => dayKey(t.ts) === dia && (tipo == null || t.tipo === tipo));
-}
-function ranking(dia, tipo) {
-  return tentativasDoDia(dia, tipo).filter(t => t.valida).sort((a, b) => a.ms - b.ms);
-}
-
-let audioCtx;
-function beep(freq = 1000, dur = 0.35) {
-  audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-  o.frequency.value = freq; o.type = 'square';
-  g.gain.setValueAtTime(0.4, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-  o.connect(g).connect(audioCtx.destination);
-  o.start(); o.stop(audioCtx.currentTime + dur);
-}
-
-// ---------- Abas ----------
-document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('active', x === b));
-  document.querySelectorAll('main section').forEach(s => s.classList.toggle('active', s.id === b.dataset.tab));
-  renderAll();
-}));
-
-// ---------- Seleção de equipe ----------
-function fillSelect(el, value, allowEmptyLabel) {
-  el.innerHTML = `<option value="">${allowEmptyLabel}</option>` +
-    db.mecanicos.map(m => `<option ${m === value ? 'selected' : ''}>${esc(m)}</option>`).join('');
-}
-function renderSelecao() {
-  document.querySelectorAll('#tipoSeg button').forEach(b => b.classList.toggle('active', +b.dataset.tipo === sel.tipo));
-  document.querySelectorAll('#modoSeg button').forEach(b => b.classList.toggle('active', b.dataset.modo === sel.modo));
-  fillSelect($('#selPist'), sel.pist, '— escolher —');
-  fillSelect($('#selEnc1'), sel.enc1, '— escolher —');
-  fillSelect($('#selEnc2'), sel.enc2, '— escolher —');
-  const t2 = sel.tipo === 2;
-  $('#wrapUnico').style.display = t2 ? '' : 'none';
-  $('#wrapEnc2').style.display = t2 && !sel.unico ? '' : 'none';
-  $('#lblEnc1').textContent = t2 && !sel.unico ? 'Encaixador 1' : 'Encaixador';
-  $('#chkUnico').checked = sel.unico;
-  $('#hint').textContent = sel.modo === 'manual'
-    ? 'Toque em INICIAR no primeiro movimento do pistoleiro e em PARAR quando ele levantar o braço. Atalhos: barra de espaço ou passador de slides.'
-    : 'Toque em PREPARAR: após um intervalo aleatório soa o bipe e o tempo começa. Toque em PARAR quando o pistoleiro levantar o braço.';
-}
-function persistSel() { db.sel = { ...sel }; save(); }
-
-$('#tipoSeg').addEventListener('click', e => { if (e.target.dataset.tipo && timer.estado === 'pronto') { sel.tipo = +e.target.dataset.tipo; persistSel(); renderAll(); } });
-$('#modoSeg').addEventListener('click', e => { if (e.target.dataset.modo && timer.estado === 'pronto') { sel.modo = e.target.dataset.modo; persistSel(); renderAll(); } });
-$('#selPist').addEventListener('change', e => { sel.pist = e.target.value; persistSel(); });
-$('#selEnc1').addEventListener('change', e => { sel.enc1 = e.target.value; persistSel(); });
-$('#selEnc2').addEventListener('change', e => { sel.enc2 = e.target.value; persistSel(); });
-$('#chkUnico').addEventListener('change', e => { sel.unico = e.target.checked; persistSel(); renderSelecao(); });
-
-function equipeAtual() {
-  const enc2 = sel.tipo === 2 && !sel.unico ? sel.enc2 : '';
-  return { tipo: sel.tipo, pist: sel.pist, enc1: sel.enc1, enc2 };
-}
-function validarEquipe() {
-  const e = equipeAtual();
-  if (!e.pist) return 'Escolha o pistoleiro.';
-  if (!e.enc1) return 'Escolha o encaixador.';
-  if (e.tipo === 2 && !sel.unico && !e.enc2) return 'Escolha o encaixador 2 ou marque "Encaixador único".';
-  const nomes = [e.pist, e.enc1, e.enc2].filter(Boolean);
-  if (new Set(nomes).size !== nomes.length) return 'O mesmo mecânico está em duas funções.';
-  return null;
-}
-
-// ---------- Cronômetro ----------
-const timer = { estado: 'pronto', t0: 0, raf: 0, timeout: 0 };
-
-function setDisplay(txt, cls) {
-  const d = $('#timerDisplay');
-  d.textContent = txt;
-  d.className = cls || '';
-}
-function tick() {
-  setDisplay(fmt(performance.now() - timer.t0), 'running');
-  timer.raf = requestAnimationFrame(tick);
-}
-function iniciarContagem() {
-  timer.estado = 'correndo';
-  timer.t0 = performance.now();
-  channel && channel.postMessage({ kind: 'start', at: Date.now(), equipe: equipeTxt(equipeAtual()), tipo: sel.tipo });
-  $('#bigBtn').textContent = 'PARAR';
-  $('#bigBtn').className = 'stop';
-  $('#timerStatus').textContent = 'Cronometrando…';
-  tick();
-}
-function acionar() {
-  if (timer.estado === 'pronto') {
-    const erro = validarEquipe();
-    if (erro) { $('#timerStatus').textContent = erro; return; }
-    $('#lastBox').style.display = 'none';
-    if (sel.modo === 'manual') { iniciarContagem(); return; }
-    timer.estado = 'armado';
-    beep(600, 0.12);
-    setDisplay('PRONTOS', 'armed');
-    $('#bigBtn').textContent = 'CANCELAR';
-    $('#bigBtn').className = 'armed';
-    $('#timerStatus').textContent = 'Aguarde o bipe…';
-    const atraso = SINAL_ATRASO_MIN + Math.random() * (SINAL_ATRASO_MAX - SINAL_ATRASO_MIN);
-    timer.timeout = setTimeout(() => { beep(1200, 0.4); iniciarContagem(); }, atraso);
-  } else if (timer.estado === 'armado') {
-    clearTimeout(timer.timeout);
-    resetBotao();
-    setDisplay('0,00');
-    $('#timerStatus').textContent = 'Cancelado.';
-  } else if (timer.estado === 'correndo') {
-    const ms = Math.round(performance.now() - timer.t0);
-    cancelAnimationFrame(timer.raf);
-    registrar(ms);
-  }
-}
-function resetBotao() {
-  timer.estado = 'pronto';
-  $('#bigBtn').textContent = sel.modo === 'manual' ? 'INICIAR' : 'PREPARAR';
-  $('#bigBtn').className = '';
-}
-function registrar(ms) {
-  const e = equipeAtual();
-  const melhorAntes = ranking(hoje(), e.tipo)[0];
-  const t = { id: Date.now() + '-' + Math.random().toString(36).slice(2, 6), ts: Date.now(), ...e, ms, valida: true, modo: sel.modo, obs: '' };
-  db.tentativas.push(t);
-  save();
-  const recorde = !melhorAntes || ms < melhorAntes.ms;
-  setDisplay(fmt(ms), recorde ? 'record' : '');
-  $('#timerStatus').innerHTML = recorde ? '<span class="badge rec">MELHOR TEMPO DO DIA</span>' : `Melhor do dia: ${fmt(melhorAntes.ms)} s`;
-  channel && channel.postMessage({ kind: 'stop', ms, recorde });
-  resetBotao();
-  mostrarUltima(t);
-  renderAll();
-}
-function mostrarUltima(t) {
-  const box = $('#lastBox');
-  box.style.display = 'flex';
-  box.innerHTML = `<span>Última: <b>${fmt(t.ms)} s</b> — ${esc(equipeTxt(t))}</span>
-    <button class="btn small danger" data-act="invalidar">Invalidar (erro)</button>
-    <button class="btn small" data-act="excluir">Excluir (toque errado)</button>`;
-  box.onclick = ev => {
-    const act = ev.target.dataset.act;
-    if (act === 'invalidar') { invalidar(t.id); box.style.display = 'none'; }
-    if (act === 'excluir') { excluir(t.id, true); box.style.display = 'none'; setDisplay('0,00'); $('#timerStatus').textContent = 'Tentativa excluída.'; }
-  };
-}
-
-$('#bigBtn').addEventListener('pointerdown', e => { e.preventDefault(); acionar(); });
-document.addEventListener('keydown', e => {
-  if (!$('#cronometro').classList.contains('active') || document.body.classList.contains('tv')) return;
-  if (['INPUT', 'SELECT'].includes(document.activeElement.tagName) && e.code !== 'Space') return;
-  if (['Space', 'Enter', 'PageDown', 'PageUp', 'ArrowRight', 'ArrowLeft'].includes(e.code) && !e.repeat) {
-    e.preventDefault();
-    document.activeElement.blur();
-    acionar();
-  }
-});
-
-// ---------- Ações sobre tentativas ----------
-function invalidar(id) {
-  const t = db.tentativas.find(x => x.id === id);
-  if (!t) return;
-  if (t.valida) {
-    const motivo = prompt('Motivo da invalidação (ex.: porca não apertada, pneu caiu):', '');
-    if (motivo === null) return;
-    t.valida = false; t.obs = motivo;
-  } else {
-    t.valida = true; t.obs = '';
-  }
-  save(); renderAll();
-}
-function excluir(id, semConfirmar) {
-  if (!semConfirmar && !confirm('Excluir esta tentativa definitivamente?')) return;
-  db.tentativas = db.tentativas.filter(x => x.id !== id);
-  save(); renderAll();
-}
-
-// ---------- Ranking ----------
-function champCard(dia, tipo) {
-  const r = ranking(dia, tipo);
-  const total = tentativasDoDia(dia, tipo).length;
-  if (!r.length) return `<div class="card champ"><h2>Mais rápido · ${TIPOS[tipo]}</h2><div class="empty">Nenhuma tentativa válida.</div></div>`;
-  const b = r[0];
-  const media = r.reduce((s, t) => s + t.ms, 0) / r.length;
-  return `<div class="card champ"><h2>Mais rápido · ${TIPOS[tipo]}</h2>
-    <div class="time">${fmt(b.ms)} s</div>
-    <div class="team">${esc(equipeTxt(b))}</div>
-    <div class="meta">às ${hora(b.ts)} · ${r.length} válidas de ${total} · média do dia ${fmt(media)} s</div></div>`;
-}
-function rankTable(dia, tipo, limite) {
-  const r = ranking(dia, tipo).slice(0, limite || 999);
-  if (!r.length) return '<div class="empty">Sem tentativas.</div>';
-  return `<table><tr><th>#</th><th>Tempo</th><th>Equipe</th><th>Hora</th></tr>` +
-    r.map((t, i) => `<tr class="${i === 0 ? 'pos1' : ''}"><td>${i + 1}º</td><td class="num">${fmt(t.ms)}</td><td>${esc(equipeTxt(t))}</td><td>${hora(t.ts)}</td></tr>`).join('') +
-    `</table>`;
-}
-function mecStats(dia) {
-  const rows = db.mecanicos.map(m => {
-    const cel = tipo => {
-      const r = ranking(dia, tipo).filter(t => t.pist === m || encaixadores(t).includes(m));
-      if (!r.length) return '<td>—</td><td>—</td><td>0</td>';
-      const media = r.reduce((s, t) => s + t.ms, 0) / r.length;
-      return `<td class="num">${fmt(r[0].ms)}</td><td class="num">${fmt(media)}</td><td>${r.length}</td>`;
-    };
-    return `<tr><td>${esc(m)}</td>${cel(1)}${cel(2)}</tr>`;
-  }).join('');
-  return `<table><tr><th>Mecânico</th><th>Melhor T1</th><th>Média T1</th><th>Qtd T1</th><th>Melhor T2</th><th>Média T2</th><th>Qtd T2</th></tr>${rows}</table>`;
-}
-function renderRanking() {
-  const dia = $('#rankDate').value || hoje();
-  $('#champs').innerHTML = champCard(dia, 1) + champCard(dia, 2);
-  $('#rankTables').innerHTML = [1, 2].map(tp => `<div class="card"><h2>Ranking · ${TIPOS[tp]}</h2>${rankTable(dia, tp)}</div>`).join('');
-  $('#mecStats').innerHTML = mecStats(dia);
-}
-$('#rankDate').addEventListener('change', renderRanking);
-$('#rankToday').addEventListener('click', () => { $('#rankDate').value = hoje(); renderRanking(); });
-
-function renderCronoSide() {
-  const dia = hoje();
-  $('#cronoSide').innerHTML = [1, 2].map(tp =>
-    `<div class="card"><h2>Top 5 hoje · ${TIPOS[tp]}</h2>${rankTable(dia, tp, 5)}</div>`).join('');
-}
-
-// ---------- Histórico ----------
-function histLista() {
-  const lista = $('#histAll').checked ? db.tentativas : tentativasDoDia($('#histDate').value || hoje());
-  return [...lista].sort((a, b) => b.ts - a.ts);
-}
-function renderHistorico() {
-  const lista = histLista();
-  if (!lista.length) { $('#histTable').innerHTML = '<div class="empty">Nenhuma tentativa.</div>'; return; }
-  $('#histTable').innerHTML = `<table><tr><th>Data</th><th>Hora</th><th>Tipo</th><th>Equipe</th><th>Tempo</th><th>Início</th><th>Obs.</th><th></th></tr>` +
-    lista.map(t => `<tr class="${t.valida ? '' : 'invalid'}">
-      <td>${dayKey(t.ts).split('-').reverse().join('/')}</td><td>${hora(t.ts)}</td><td>${t.tipo}</td>
-      <td>${esc(equipeTxt(t))}</td><td class="num">${fmt(t.ms)}</td>
-      <td><span class="badge">${t.modo === 'sinal' ? 'sinal' : 'manual'}</span></td>
-      <td>${t.valida ? '' : '<span class="badge inv">inválida</span> '}${esc(t.obs)}</td>
-      <td class="actions"><button class="btn small" data-inv="${t.id}">${t.valida ? 'Invalidar' : 'Revalidar'}</button>
-      <button class="btn small danger" data-del="${t.id}">Excluir</button></td></tr>`).join('') + `</table>`;
-}
-$('#histTable').addEventListener('click', e => {
-  if (e.target.dataset.inv) invalidar(e.target.dataset.inv);
-  if (e.target.dataset.del) excluir(e.target.dataset.del);
-});
-$('#histDate').addEventListener('change', renderHistorico);
-$('#histAll').addEventListener('change', renderHistorico);
-
-function download(nome, conteudo, tipo) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
-  a.download = nome;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-$('#exportCsv').addEventListener('click', () => {
-  const linhas = [['Data', 'Hora', 'Tipo', 'Pistoleiro', 'Encaixador 1', 'Encaixador 2', 'Tempo (s)', 'Válida', 'Início', 'Observação']];
-  [...histLista()].reverse().forEach(t => linhas.push([
-    dayKey(t.ts).split('-').reverse().join('/'), hora(t.ts), t.tipo, t.pist, t.enc1, t.enc2 || '',
-    fmt(t.ms), t.valida ? 'Sim' : 'Não', t.modo, t.obs || ''
-  ]));
-  const csv = '\ufeff' + linhas.map(l => l.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\r\n');
-  const sufixo = $('#histAll').checked ? 'completo' : ($('#histDate').value || hoje());
-  download(`pitstop_${sufixo}.csv`, csv, 'text/csv;charset=utf-8');
-});
-$('#exportJson').addEventListener('click', () => download(`pitstop_backup_${hoje()}.json`, JSON.stringify(db, null, 2), 'application/json'));
-$('#importJson').addEventListener('change', async e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  try {
-    const d = JSON.parse(await f.text());
-    if (!Array.isArray(d.tentativas)) throw new Error();
-    if (!confirm(`Restaurar backup com ${d.tentativas.length} tentativas? Os dados atuais serão substituídos.`)) return;
-    db = d; save(); renderAll();
-  } catch { alert('Arquivo de backup inválido.'); }
-  e.target.value = '';
-});
-
-// ---------- Mecânicos ----------
-function renderMecanicos() {
-  $('#mecList').innerHTML = db.mecanicos.map(m => `<span class="chip">${esc(m)}<button data-rm="${esc(m)}" title="Remover">✕</button></span>`).join('')
-    || '<div class="empty">Nenhum mecânico cadastrado.</div>';
-}
-function addMec() {
-  const nome = $('#newMec').value.trim();
-  if (!nome || db.mecanicos.includes(nome)) return;
-  db.mecanicos.push(nome);
-  db.mecanicos.sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  $('#newMec').value = '';
-  save(); renderAll();
-}
-$('#addMec').addEventListener('click', addMec);
-$('#newMec').addEventListener('keydown', e => { if (e.key === 'Enter') addMec(); });
-$('#mecList').addEventListener('click', e => {
-  const m = e.target.dataset.rm;
-  if (m && confirm(`Remover ${m} da lista? (As tentativas registradas são mantidas.)`)) {
-    db.mecanicos = db.mecanicos.filter(x => x !== m);
-    save(); renderAll();
-  }
-});
-
-// ---------- Modo TV ----------
-const isTv = new URLSearchParams(location.search).has('tv');
-$('#openTv').addEventListener('click', () => window.open(location.pathname + '?tv=1', 'pitstop-tv'));
-$('#tvExit').addEventListener('click', () => window.close());
-
-const tvLive = { raf: 0, at: 0 };
-function renderTvBoards() {
-  const dia = hoje();
-  $('#tvBoards').innerHTML = [1, 2].map(tp => {
-    const r = ranking(dia, tp);
-    const lider = r[0] ? `<div class="champ" style="padding:12px;border-radius:12px;margin-bottom:12px">
-        <div class="time">${fmt(r[0].ms)} s</div><div class="team">${esc(equipeTxt(r[0]))}</div></div>` : '';
-    return `<div class="card"><h2>${TIPOS[tp]}</h2>${lider}${rankTable(dia, tp, 5)}</div>`;
-  }).join('');
-}
-function tvTick() {
-  $('#tvTimer').textContent = fmt(Date.now() - tvLive.at);
-  tvLive.raf = requestAnimationFrame(tvTick);
-}
-if (channel) channel.onmessage = ({ data }) => {
-  if (data.kind === 'data') { db = load(); renderAll(); }
-  if (!isTv) return;
-  if (data.kind === 'start') {
-    tvLive.at = data.at;
-    $('#tvLabel').textContent = TIPOS[data.tipo];
-    $('#tvTeam').textContent = data.equipe;
-    $('#tvTimer').className = 'running';
-    cancelAnimationFrame(tvLive.raf); tvTick();
-  }
-  if (data.kind === 'stop') {
-    cancelAnimationFrame(tvLive.raf);
-    $('#tvTimer').textContent = fmt(data.ms);
-    $('#tvTimer').className = data.recorde ? 'record' : '';
-    $('#tvLabel').textContent = data.recorde ? 'NOVO MELHOR TEMPO DO DIA!' : 'Tempo final';
-  }
-};
-window.addEventListener('storage', e => { if (e.key === STORAGE_KEY) { db = load(); renderAll(); } });
-
-// ---------- Inicialização ----------
-function renderAll() {
-  if (isTv) { renderTvBoards(); return; }
-  renderSelecao();
-  if (timer.estado === 'pronto') resetBotao();
-  renderCronoSide();
-  renderRanking();
-  renderHistorico();
-  renderMecanicos();
-}
-if (isTv) document.body.classList.add('tv');
-$('#rankDate').value = hoje();
-$('#histDate').value = hoje();
-renderAll();
-</script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
