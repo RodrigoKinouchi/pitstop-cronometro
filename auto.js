@@ -1,7 +1,7 @@
 let FilesetResolver, PoseLandmarker;
 
 const DEFAULTS = {
-  camId: '', facing: 'environment', micId: '', model: 'lite', arm: 'cabeca', hold: 3, minS: 1.5, maxS: 20,
+  camId: '', facing: 'environment', camManual: false, micId: '', model: 'lite', arm: 'cabeca', hold: 3, minS: 1.5, maxS: 20,
   delayMin: 1.5, delayMax: 3.5, rearmS: 0, offsetMs: 0, clips: true,
   gunCheck: true, gunThr: 45, roi: null, ref: null, showRef: true, equipeId: '',
 };
@@ -84,57 +84,86 @@ export function initAuto(api) {
     return devs.filter(d => d.kind === 'videoinput');
   }
   function pareceTraseira(label = '') {
-    return /back|rear|environment|world|traseir|posterior|0,\s*facing\s*back/i.test(label);
+    return /back|rear|environment|world|traseir|posterior|facing\s*back/i.test(label);
   }
   function pareceFrontal(label = '') {
     return /front|user|facing\s*front|frontal|selfie/i.test(label);
-  }
-  async function preferirTraseiraSeVazio() {
-    if (C.camId) return;
-    const cams = await cameras();
-    if (!cams.length) return;
-    const traseira = cams.find(c => pareceTraseira(c.label));
-    const naoFrontal = cams.find(c => c.label && !pareceFrontal(c.label));
-    // Em muitos Chromebooks a traseira é a 2ª da lista quando os nomes vêm genéricos.
-    C.camId = (traseira || naoFrontal || cams[cams.length > 1 ? 1 : 0]).deviceId;
-    C.facing = 'environment';
-    saveCfg();
   }
   function videoConstraints() {
     const base = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
     if (C.camId) return { ...base, deviceId: { exact: C.camId } };
     return { ...base, facingMode: { ideal: C.facing || 'environment' } };
   }
+  function cameraAtiva() {
+    const t = S.stream?.getVideoTracks?.()[0];
+    if (!t) return { id: '', label: '', facing: '' };
+    const s = t.getSettings?.() || {};
+    return { id: s.deviceId || '', label: t.label || '', facing: s.facingMode || '' };
+  }
+  async function escolherTraseiraInicial() {
+    if (C.camManual) return;
+    const cams = await cameras();
+    if (!cams.length) return;
+    const traseira = cams.find(c => pareceTraseira(c.label));
+    if (traseira) { C.camId = traseira.deviceId; C.facing = 'environment'; return; }
+    // Sem nome claro: em tablets costuma ser a 2ª da lista
+    if (cams.length >= 2) { C.camId = cams[1].deviceId; C.facing = 'environment'; }
+  }
   async function listarDispositivos() {
     const devs = await navigator.mediaDevices.enumerateDevices();
-    const opt = (list, cur, nome) => '<option value="">Padrão do sistema</option>' + list.map((d, i) =>
+    const opt = (list, cur, nome) => '<option value="">Automático</option>' + list.map((d, i) =>
       `<option value="${d.deviceId}" ${d.deviceId === cur ? 'selected' : ''}>${api.esc(d.label || `${nome} ${i + 1}`)}</option>`).join('');
     $('#cfgCam').innerHTML = opt(devs.filter(d => d.kind === 'videoinput'), C.camId, 'Câmera');
     $('#cfgMic').innerHTML = opt(devs.filter(d => d.kind === 'audioinput'), C.micId, 'Microfone');
   }
+  async function abrirStream(constraints) {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: constraints, audio: false });
+    return stream;
+  }
   async function inverterCamera() {
-    const cams = await cameras();
-    if (cams.length < 2) {
-      // Sem lista de devices: alterna facingMode
-      C.facing = C.facing === 'environment' ? 'user' : 'environment';
+    const btn = $('#camFlip');
+    if (btn) btn.disabled = true;
+    try {
+      if (!S.running) {
+        status('Ligue a câmera antes de inverter.');
+        return;
+      }
+      const cams = await cameras();
+      const atual = cameraAtiva();
+      status(`Trocando câmera… (${cams.length} disponível${cams.length === 1 ? '' : 'eis'})`);
+
+      C.camManual = true;
+
+      // 1) Se há 2+ devices, vai para o próximo da lista
+      if (cams.length >= 2) {
+        let i = cams.findIndex(c => c.deviceId === (C.camId || atual.id));
+        if (i < 0) i = 0;
+        const next = cams[(i + 1) % cams.length];
+        C.camId = next.deviceId;
+        C.facing = pareceFrontal(next.label) ? 'user' : 'environment';
+        saveCfg();
+        await ligar({ pularAutoTraseira: true });
+        const depois = cameraAtiva();
+        status(`Câmera: ${depois.label || next.label || 'alternada'}`);
+        return;
+      }
+
+      // 2) Só 1 device na lista: tenta facingMode exact (comum em alguns Chromebooks)
+      const alvo = (atual.facing === 'environment' || C.facing === 'environment') ? 'user' : 'environment';
+      C.facing = alvo;
       C.camId = '';
       saveCfg();
-      status(C.facing === 'environment' ? 'Tentando câmera traseira…' : 'Tentando câmera frontal…');
-      await ligar();
-      return;
+      try {
+        await ligar({ pularAutoTraseira: true, facingExact: alvo });
+        status(alvo === 'environment' ? 'Câmera traseira' : 'Câmera frontal');
+      } catch {
+        status('Este tablet só expõe uma câmera para o navegador. Em Configuração → Câmera, veja se aparece outra.');
+      }
+    } catch (e) {
+      status('Falha ao inverter: ' + (e.message || e));
+    } finally {
+      if (btn) btn.disabled = false;
     }
-    let i = Math.max(0, cams.findIndex(c => c.deviceId === C.camId));
-    if (!C.camId) {
-      // Se abriu pela facingMode, descobre qual device está ativo
-      const atual = S.stream?.getVideoTracks?.()[0]?.getSettings?.().deviceId;
-      i = Math.max(0, cams.findIndex(c => c.deviceId === atual));
-    }
-    const next = cams[(i + 1) % cams.length];
-    C.camId = next.deviceId;
-    C.facing = pareceFrontal(next.label) ? 'user' : 'environment';
-    saveCfg();
-    status(`Trocando para: ${next.label || 'outra câmera'}…`);
-    await ligar();
   }
 
   async function carregarModelo() {
@@ -158,29 +187,47 @@ export function initAuto(api) {
     S.modelName = C.model;
   }
 
-  async function ligar() {
+  async function ligar(opts = {}) {
     desligar();
     actx();
     status('Abrindo câmera…');
     try {
-      // Primeira abertura libera os labels dos devices; aí preferimos a traseira.
-      if (!C.camId) {
+      // Libera permissão e labels
+      if (!C.camId && !C.camManual) {
         try {
-          const probe = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+          const probe = await abrirStream({ facingMode: { ideal: 'environment' } });
           probe.getTracks().forEach(t => t.stop());
-          await preferirTraseiraSeVazio();
-        } catch { /* segue com as constraints normais */ }
+          await listarDispositivos();
+          if (!opts.pularAutoTraseira) await escolherTraseiraInicial();
+          saveCfg();
+        } catch { /* segue */ }
       }
-      S.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints() });
+      const constr = opts.facingExact
+        ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { exact: opts.facingExact } }
+        : videoConstraints();
+      S.stream = await abrirStream(constr);
     } catch (e) {
-      // Fallback: tenta a outra câmera da lista
       try {
-        C.camId = '';
-        C.facing = C.facing === 'environment' ? 'user' : 'environment';
-        S.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints() });
+        // Fallback sem exact
+        S.stream = await abrirStream(videoConstraints());
       } catch (e2) {
         status('Não foi possível abrir a câmera: ' + e.message);
-        return;
+        throw e2;
+      }
+    }
+    // Primeira ligação sem escolha manual: se veio frontal e existe outra, troca
+    if (!C.camManual && !opts.pularAutoTraseira) {
+      const cams = await cameras();
+      const ativo = cameraAtiva();
+      if (cams.length >= 2 && (pareceFrontal(ativo.label) || ativo.facing === 'user')) {
+        const outra = cams.find(c => c.deviceId !== ativo.id) || cams[1];
+        if (outra) {
+          C.camId = outra.deviceId;
+          C.facing = 'environment';
+          saveCfg();
+          S.stream.getTracks().forEach(t => t.stop());
+          S.stream = await abrirStream(videoConstraints());
+        }
       }
     }
     video.srcObject = S.stream;
@@ -188,32 +235,13 @@ export function initAuto(api) {
     $('#camOff').style.display = 'none';
     await ligarMic();
     await listarDispositivos();
-    {
-      const track = S.stream.getVideoTracks()[0];
-      const ativo = track?.getSettings?.().deviceId || '';
-      const label = track?.label || '';
-      const cams = await cameras();
-      const antes = C.camId;
-      await preferirTraseiraSeVazio();
-      const traseira = cams.find(c => pareceTraseira(c.label));
-      if (traseira && pareceFrontal(label)) C.camId = traseira.deviceId;
-      // Chromebook: se há 2+ câmeras e ainda estamos na primeira (geralmente frontal), vai para a outra
-      if (!traseira && cams.length >= 2 && pareceFrontal(label)) C.camId = cams.find(c => c.deviceId !== ativo)?.deviceId || C.camId;
-      if (C.camId && C.camId !== ativo && C.camId !== antes) {
-        saveCfg();
-        track.stop();
-        S.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints() });
-        video.srcObject = S.stream;
-        await video.play();
-        await listarDispositivos();
-      } else if (C.camId !== antes) saveCfg();
-    }
     try { await carregarModelo(); }
     catch (e) { status('Erro ao carregar o detector: ' + e.message); return; }
     S.running = true;
     S.estado = 'aguardando';
+    const info = cameraAtiva();
     const fps = Math.round(S.stream.getVideoTracks()[0].getSettings().frameRate || 0);
-    status(`Câmera ligada (${video.videoWidth}×${video.videoHeight}, ${fps} qps)${S.micStream ? '' : ' — sem microfone'}.`);
+    status(`Câmera: ${info.label || info.facing || 'ok'} · ${video.videoWidth}×${video.videoHeight} · ${fps} qps${S.micStream ? '' : ' · sem microfone'}`);
     agendarQuadro();
     render();
   }
@@ -496,10 +524,16 @@ export function initAuto(api) {
       if (key === 'model' && S.running) { await carregarModelo(); status('Detector trocado.'); }
     });
   }
-  $('#cfgCam').addEventListener('change', e => { C.camId = e.target.value; saveCfg(); if (S.running) ligar(); });
+  $('#cfgCam').addEventListener('change', e => {
+    C.camId = e.target.value;
+    C.camManual = !!e.target.value;
+    if (!e.target.value) C.camManual = false;
+    saveCfg();
+    if (S.running) ligar({ pularAutoTraseira: true });
+  });
   $('#cfgMic').addEventListener('change', e => { C.micId = e.target.value; saveCfg(); if (S.running) ligarMic(); });
-  $('#camStart').addEventListener('click', ligar);
-  $('#camFlip').addEventListener('click', () => inverterCamera());
+  $('#camStart').addEventListener('click', () => ligar());
+  $('#camFlip').addEventListener('click', () => { inverterCamera(); });
   $('#camStop').addEventListener('click', () => { desligar(); status('Câmera desligada.'); });
   $('#autoBtn').addEventListener('pointerdown', e => { e.preventDefault(); pronto(); });
   $('#teamTiles').addEventListener('click', e => {
