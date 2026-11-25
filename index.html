@@ -15,7 +15,10 @@
 <body>
 
 <header>
-  <h1>PIT STOP · TREINO</h1>
+  <div class="brand">
+    <img class="brand-logo" src="Logo/amattheis.png" alt="Amattheis" width="148" height="26">
+    <h1>PIT STOP · TREINO</h1>
+  </div>
   <nav>
     <button data-tab="automatico" class="active">Automático</button>
     <button data-tab="cronometro">Manual</button>
@@ -182,10 +185,10 @@
     <div class="card">
       <h2>Equipes</h2>
       <div class="row" style="margin-bottom:14px">
-        <label>Nome da equipe <input type="text" id="eqNome" placeholder="Ex.: Equipe Azul"></label>
         <label>Tipo <select id="eqTipo"><option value="1">Tipo 1 · 1 pneu</option><option value="2">Tipo 2 · 2 pneus</option></select></label>
         <button class="btn primary" id="eqAdd">Criar equipe</button>
       </div>
+      <div class="hint">O nome da equipe é montado sozinho (ex.: Reinaldo e Fabiano).</div>
       <div class="roleBlock">
         <div class="roleTitle">Pistoleiro</div>
         <select id="eqPist" class="sr-select"></select>

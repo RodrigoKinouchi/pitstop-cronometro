@@ -98,7 +98,13 @@ function funcoesTxt(t) {
   if (t.tipo === 1) return `P: ${t.pist} · E: ${t.enc1}`;
   return t.enc2 ? `P: ${t.pist} · E1: ${t.enc1} · E2: ${t.enc2}` : `P: ${t.pist} · E: ${t.enc1} (único)`;
 }
-function equipeTxt(t) { return t.nome ? `${t.nome} (${funcoesTxt(t)})` : funcoesTxt(t); }
+function nomeEquipeAuto({ pist, enc1, enc2 }) {
+  const nomes = [pist, enc1, enc2].filter(Boolean);
+  if (nomes.length >= 3) return `${nomes[0]}, ${nomes[1]} e ${nomes[2]}`;
+  if (nomes.length === 2) return `${nomes[0]} e ${nomes[1]}`;
+  return nomes[0] || '';
+}
+function equipeTxt(t) { return t.nome || nomeEquipeAuto(t) || funcoesTxt(t); }
 function tentativasDoDia(dia, tipo) {
   return db.tentativas.filter(t => dayKey(t.ts) === dia && (tipo == null || t.tipo === tipo));
 }
@@ -444,11 +450,14 @@ $('#eqTipo').addEventListener('change', renderMecanicos);
 $('#eqAdd').addEventListener('click', () => {
   const tipo = +$('#eqTipo').value;
   const q = { tipo, pist: $('#eqPist').value, enc1: $('#eqEnc1').value, enc2: tipo === 2 ? $('#eqEnc2').value : '' };
-  const nome = $('#eqNome').value.trim();
-  const erro = !nome ? 'Dê um nome à equipe.' : validarFuncoes(q, false);
+  const erro = validarFuncoes(q, false);
   if (erro) { alert(erro); return; }
+  const nome = nomeEquipeAuto(q);
+  if (db.equipes.some(e => e.nome === nome && e.tipo === tipo)) {
+    alert('Essa equipe já está cadastrada para este tipo.');
+    return;
+  }
   db.equipes.push({ id: 'eq' + Date.now(), nome, ...q });
-  $('#eqNome').value = '';
   save(); renderAll();
 });
 $('#eqList').addEventListener('click', e => {

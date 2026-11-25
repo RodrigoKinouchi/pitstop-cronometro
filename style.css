@@ -5,7 +5,13 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); }
 header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-header h1 { font-size: 18px; margin: 0; color: var(--accent); letter-spacing: .5px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand-logo { height: 26px; width: auto; display: block; flex-shrink: 0; }
+header h1 { font-size: 18px; margin: 0; color: var(--accent); letter-spacing: .5px; white-space: nowrap; }
+@media (max-width: 700px) {
+  .brand-logo { height: 22px; }
+  header h1 { font-size: 15px; }
+}
 nav { display: flex; gap: 6px; flex-wrap: wrap; }
 nav button, .btn { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 14px; cursor: pointer; }
 nav button.active { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 600; }
@@ -96,11 +102,11 @@ tr.invalid td.actions { text-decoration: none; }
 .chip button { background: transparent; border: 0; color: var(--red); cursor: pointer; font-size: 16px; }
 
 .avatar {
-  width: 36px; height: 36px; border-radius: 50%; object-fit: cover; object-position: center top;
+  width: 40px; height: 40px; border-radius: 50%; object-fit: cover; object-position: center top;
   border: 2px solid var(--border); background: var(--panel2); flex-shrink: 0; display: inline-block; vertical-align: middle;
 }
-.avatar.sm { width: 28px; height: 28px; }
-.avatars.lg .avatar, .avatar.lg { width: 56px; height: 56px; border-width: 3px; }
+.avatar.sm { width: 32px; height: 32px; }
+.avatars.lg .avatar, .avatar.lg { width: 64px; height: 64px; border-width: 3px; }
 .avatar-fallback {
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 700; color: var(--muted); box-sizing: border-box;
@@ -109,7 +115,7 @@ tr.invalid td.actions { text-decoration: none; }
 .avatars .avatar { margin-left: -10px; }
 .avatars .avatar:first-child { margin-left: 0; }
 .avatars.tile-av { justify-content: center; margin-bottom: 8px; }
-.avatars.tile-av .avatar { width: 48px; height: 48px; margin-left: -14px; border-color: var(--panel); }
+.avatars.tile-av .avatar { width: 64px; height: 64px; margin-left: -16px; border-color: var(--panel); }
 .avatars.tile-av .avatar:first-child { margin-left: 0; }
 .who { display: flex; align-items: center; gap: 10px; }
 .champ-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 8px 0; }
@@ -118,18 +124,19 @@ tr.invalid td.actions { text-decoration: none; }
 .roleBlock { margin-top: 14px; }
 .roleTitle { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
 .sr-select { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.faces { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.faces { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
 .face {
   background: var(--panel2); border: 2px solid var(--border); border-radius: 12px;
-  padding: 8px 4px; cursor: pointer; color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 6px; cursor: pointer; color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 8px;
 }
-.face .avatar { width: 52px; height: 52px; margin: 0; }
-.face-name { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.face .avatar { width: 72px; height: 72px; margin: 0; }
+.face-name { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .face.on { border-color: var(--accent); background: #2a2410; }
 .face.on .face-name { color: var(--accent); }
 
-.tile { display: flex; flex-direction: column; align-items: center; }
+.tile { display: flex; flex-direction: column; align-items: center; padding: 18px 12px; }
 .tile-name { font-size: 18px; font-weight: 700; }
+.tiles { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
 
 /* Modal de vídeo */
 #modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .8); display: flex; align-items: center; justify-content: center; z-index: 10; }
