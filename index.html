@@ -57,7 +57,10 @@
           <div id="autoDisplay">0,00</div>
           <div id="autoStatus"></div>
           <button id="autoBtn" class="bigBtn">PRONTO</button>
-          <div class="hint">Toque em PRONTO (ou aperte o botão/controle). Saia no bipe. O tempo para quando o pistoleiro levantar o braço.</div>
+          <label class="check rearmToggle"><input type="checkbox" id="chkRearm"> Treino contínuo — próxima puxada sozinha após
+            <input type="number" id="rearmSeg" min="2" max="30" step="1" value="5" class="rearmInput"> s
+          </label>
+          <div class="hint" id="autoHint">Quem clica em PRONTO: estagiário no tablet, controle sem fio, ou (com a pulseira) o botão no pulso. No treino contínuo ninguém precisa tocar entre as puxadas.</div>
         </div>
         <div class="card">
           <h2>Equipe</h2>
@@ -82,7 +85,7 @@
         <label>Tempo máximo / desiste (s) <input type="number" id="cfgMaxS" min="3" step="1"></label>
         <label>Bipe após PRONTO: de (s) <input type="number" id="cfgDelayMin" min="0.5" step="0.1"></label>
         <label>até (s) <input type="number" id="cfgDelayMax" min="0.5" step="0.1"></label>
-        <label>Rearme automático (s, 0 = desligado) <input type="number" id="cfgRearm" min="0" step="1"></label>
+        <label>Treino contínuo — intervalo (s) <input type="number" id="cfgRearm" min="0" step="1"></label>
         <label>Ajuste fino do tempo (ms) <input type="number" id="cfgOffset" step="10"></label>
         <label class="check"><input type="checkbox" id="cfgClips"> Salvar vídeo de cada tentativa</label>
       </div>

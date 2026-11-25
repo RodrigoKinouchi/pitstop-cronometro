@@ -2,7 +2,7 @@ let FilesetResolver, PoseLandmarker;
 
 const DEFAULTS = {
   camId: '', facing: 'user', camManual: false, micId: '', model: 'lite', arm: 'cabeca', hold: 3, minS: 1.5, maxS: 20,
-  delayMin: 1.5, delayMax: 3.5, rearmS: 0, offsetMs: 0, clips: true,
+  delayMin: 1.5, delayMax: 3.5, rearmS: 5, rearmOn: false, offsetMs: 0, clips: true,
   gunCheck: true, gunThr: 45, roi: null, ref: null, showRef: true, equipeId: '',
 };
 const GUN_BAND_HZ = [2000, 8000];
@@ -412,9 +412,9 @@ export function initAuto(api) {
     display(api.fmt(t.ms), recorde ? 'record' : '');
     if (semPistola) status('Pistola não detectada — tentativa marcada como inválida (pode ser validada no Histórico).');
     else status(recorde ? 'MELHOR TEMPO DO DIA!' : `Melhor do dia: ${api.fmt(melhorAntes.ms)} s`);
-    if (C.rearmS > 0) {
+    if (C.rearmOn && C.rearmS > 0) {
       S.rearmTimer = setTimeout(() => { if (S.estado === 'aguardando') pronto(); }, C.rearmS * 1000);
-      status(S.msg + ` Próxima tentativa em ${C.rearmS} s.`);
+      status(S.msg + ` Próxima em ${C.rearmS} s (treino contínuo).`);
     }
     render();
   }
@@ -502,7 +502,7 @@ export function initAuto(api) {
   // ---------- Configuração ----------
   const campos = {
     cfgModel: ['model', 'value'], cfgArm: ['arm', 'value'], cfgHold: ['hold', 'int'], cfgMinS: ['minS', 'num'],
-    cfgMaxS: ['maxS', 'num'], cfgDelayMin: ['delayMin', 'num'], cfgDelayMax: ['delayMax', 'num'], cfgRearm: ['rearmS', 'num'],
+    cfgMaxS: ['maxS', 'num'], cfgDelayMin: ['delayMin', 'num'], cfgDelayMax: ['delayMax', 'num'],
     cfgOffset: ['offsetMs', 'num'], cfgClips: ['clips', 'check'], cfgGun: ['gunCheck', 'check'], cfgGunThr: ['gunThr', 'num'],
     cfgShowRef: ['showRef', 'check'],
   };
@@ -526,6 +526,34 @@ export function initAuto(api) {
   $('#camFlip').addEventListener('click', () => { inverterCamera(); });
   $('#camStop').addEventListener('click', () => { desligar(); status('Câmera desligada.'); });
   $('#autoBtn').addEventListener('pointerdown', e => { e.preventDefault(); pronto(); });
+  function syncRearmUI() {
+    const on = !!C.rearmOn;
+    $('#chkRearm').checked = on;
+    $('#rearmSeg').value = C.rearmS || 5;
+    $('#rearmSeg').disabled = !on;
+    $('#cfgRearm').value = on ? (C.rearmS || 5) : 0;
+  }
+  $('#chkRearm').addEventListener('change', e => {
+    C.rearmOn = e.target.checked;
+    if (C.rearmOn && !(C.rearmS > 0)) C.rearmS = 5;
+    saveCfg();
+    syncRearmUI();
+    status(C.rearmOn
+      ? `Treino contínuo ligado: depois de cada tempo, nova puxada em ${C.rearmS} s.`
+      : 'Treino contínuo desligado: alguém precisa dar PRONTO a cada puxada.');
+  });
+  $('#rearmSeg').addEventListener('change', e => {
+    C.rearmS = Math.max(2, parseFloat(e.target.value) || 5);
+    saveCfg();
+    syncRearmUI();
+  });
+  $('#cfgRearm').addEventListener('change', e => {
+    const v = parseFloat(e.target.value) || 0;
+    C.rearmOn = v > 0;
+    C.rearmS = v > 0 ? Math.max(2, v) : (C.rearmS || 5);
+    saveCfg();
+    syncRearmUI();
+  });
   $('#teamTiles').addEventListener('click', e => {
     const tile = e.target.closest('[data-eq]');
     if (!tile || S.estado === 'armado' || S.estado === 'correndo') return;
@@ -566,6 +594,7 @@ export function initAuto(api) {
       armado: ['CANCELAR', 'bigBtn armed'], correndo: ['CRONOMETRANDO', 'bigBtn busy'],
     };
     [btn.textContent, btn.className] = estados[S.estado];
+    syncRearmUI();
   }
 
   return { render, pronto };
