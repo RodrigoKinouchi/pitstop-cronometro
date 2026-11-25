@@ -1,4 +1,4 @@
-import { FilesetResolver, PoseLandmarker } from './vendor/mediapipe/vision_bundle.mjs';
+let FilesetResolver, PoseLandmarker;
 
 const DEFAULTS = {
   camId: '', micId: '', model: 'lite', arm: 'cabeca', hold: 3, minS: 1.5, maxS: 20,
@@ -92,6 +92,11 @@ export function initAuto(api) {
     status('Carregando detector de postura…');
     S.landmarker?.close();
     S.landmarker = null;
+    if (!PoseLandmarker) {
+      const mod = await import('./vendor/mediapipe/vision_bundle.mjs');
+      FilesetResolver = mod.FilesetResolver;
+      PoseLandmarker = mod.PoseLandmarker;
+    }
     const fileset = await FilesetResolver.forVisionTasks('./vendor/mediapipe/wasm');
     const opts = delegate => ({
       baseOptions: { modelAssetPath: `./vendor/mediapipe/pose_landmarker_${C.model}.task`, delegate },
@@ -437,10 +442,16 @@ export function initAuto(api) {
     }
     const eqs = api.db().equipes;
     $('#teamTiles').innerHTML = eqs.length
-      ? eqs.map(q => `<button class="tile ${q.id === C.equipeId ? 'active' : ''}" data-eq="${q.id}">${api.esc(q.nome)}<small>${api.TIPOS[q.tipo]}</small></button>`).join('')
+      ? eqs.map(q => `<button class="tile ${q.id === C.equipeId ? 'active' : ''}" data-eq="${q.id}">
+          ${api.avatarsEquipe(q, 'tile-av')}
+          <span class="tile-name">${api.esc(q.nome)}</span>
+          <small>${api.TIPOS[q.tipo]}</small>
+        </button>`).join('')
       : '<div class="empty">Crie as equipes na aba "Mecânicos e equipes".</div>';
     const eq = equipe();
-    $('#autoTeam').innerHTML = eq ? `<b>${api.esc(eq.nome)}</b> · ${api.TIPOS[eq.tipo]}<br><small style="color:var(--muted)">${api.esc(api.funcoesTxt(eq))}</small>` : 'Toque no nome da sua equipe';
+    $('#autoTeam').innerHTML = eq
+      ? `<div class="autoTeamRow">${api.avatarsEquipe(eq, 'lg')}<div><b>${api.esc(eq.nome)}</b> · ${api.TIPOS[eq.tipo]}<br><small style="color:var(--muted)">${api.esc(api.funcoesTxt(eq))}</small></div></div>`
+      : 'Toque no nome da sua equipe';
     const btn = $('#autoBtn');
     const estados = {
       desligado: ['LIGUE A CÂMERA', 'bigBtn busy'], aguardando: ['PRONTO', 'bigBtn'],

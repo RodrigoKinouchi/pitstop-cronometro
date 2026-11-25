@@ -92,7 +92,44 @@ tr.invalid td.actions { text-decoration: none; }
 
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { background: var(--panel2); border: 1px solid var(--border); border-radius: 999px; padding: 6px 8px 6px 14px; display: flex; align-items: center; gap: 8px; }
+.chip-foto { padding-left: 6px; }
 .chip button { background: transparent; border: 0; color: var(--red); cursor: pointer; font-size: 16px; }
+
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%; object-fit: cover; object-position: center top;
+  border: 2px solid var(--border); background: var(--panel2); flex-shrink: 0; display: inline-block; vertical-align: middle;
+}
+.avatar.sm { width: 28px; height: 28px; }
+.avatars.lg .avatar, .avatar.lg { width: 56px; height: 56px; border-width: 3px; }
+.avatar-fallback {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--muted); box-sizing: border-box;
+}
+.avatars { display: inline-flex; align-items: center; }
+.avatars .avatar { margin-left: -10px; }
+.avatars .avatar:first-child { margin-left: 0; }
+.avatars.tile-av { justify-content: center; margin-bottom: 8px; }
+.avatars.tile-av .avatar { width: 48px; height: 48px; margin-left: -14px; border-color: var(--panel); }
+.avatars.tile-av .avatar:first-child { margin-left: 0; }
+.who { display: flex; align-items: center; gap: 10px; }
+.champ-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 8px 0; }
+.autoTeamRow { display: flex; align-items: center; justify-content: center; gap: 14px; text-align: left; }
+
+.roleBlock { margin-top: 14px; }
+.roleTitle { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.sr-select { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.faces { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.face {
+  background: var(--panel2); border: 2px solid var(--border); border-radius: 12px;
+  padding: 8px 4px; cursor: pointer; color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.face .avatar { width: 52px; height: 52px; margin: 0; }
+.face-name { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.face.on { border-color: var(--accent); background: #2a2410; }
+.face.on .face-name { color: var(--accent); }
+
+.tile { display: flex; flex-direction: column; align-items: center; }
+.tile-name { font-size: 18px; font-weight: 700; }
 
 /* Modal de vídeo */
 #modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .8); display: flex; align-items: center; justify-content: center; z-index: 10; }

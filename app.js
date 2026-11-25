@@ -1,7 +1,14 @@
 import { initAuto } from './auto.js';
 
 const STORAGE_KEY = 'pitstop-cronometro-v1';
-const MECANICOS_PADRAO = ['Henrique', 'Reinaldo', 'Eder', 'Fabiano'];
+// Nomes = arquivo em membros/<Nome>.jpg (exceto espaços, que também batem com o arquivo)
+const FOTOS = {
+  Bryan: 'Bryan.jpg', Chico: 'Chico.jpg', Douglas: 'Douglas.jpg', Eder: 'Eder.jpg',
+  Erich: 'Erich.jpg', Fabiano: 'Fabiano.jpg', Guiga: 'Guiga.jpg', Henrique: 'Henrique.jpg',
+  Joao: 'Joao.jpg', 'Leo Barboza': 'Leo Barboza.jpg', Lucas: 'Lucas.jpg', Marcio: 'Marcio.jpg',
+  Reinaldo: 'Reinaldo.jpg', Rodrigo: 'Rodrigo.jpg', Tiago: 'Tiago.jpg',
+};
+const MECANICOS_PADRAO = Object.keys(FOTOS).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 const TIPOS = { 1: 'Tipo 1 · 1 pneu', 2: 'Tipo 2 · 2 pneus' };
 const MODOS = { manual: 'manual', sinal: 'sinal', auto: 'automático' };
 const SINAL_ATRASO_MIN = 1500, SINAL_ATRASO_MAX = 3500;
@@ -15,6 +22,9 @@ function load() {
   let d;
   try { d = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch {}
   if (!d || !Array.isArray(d.tentativas)) d = { mecanicos: [...MECANICOS_PADRAO], tentativas: [] };
+  // Garante que todos com retrato entram na lista (sem apagar nomes extras já cadastrados)
+  const set = new Set([...(d.mecanicos || []), ...MECANICOS_PADRAO]);
+  d.mecanicos = [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   d.equipes = d.equipes || [];
   d.sel = d.sel || {};
   d.auto = d.auto || {};
@@ -66,6 +76,23 @@ const hora = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(
 const hoje = () => dayKey(Date.now());
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+function fotoSrc(nome) {
+  const arq = FOTOS[nome];
+  return arq ? 'membros/' + encodeURIComponent(arq) : '';
+}
+function iniciais(nome) {
+  return String(nome || '?').split(/\s+/).map(p => p[0]).join('').slice(0, 2).toUpperCase();
+}
+function avatar(nome, cls = '') {
+  const src = fotoSrc(nome);
+  if (src) return `<img class="avatar ${cls}" src="${src}" alt="${esc(nome)}" title="${esc(nome)}" loading="lazy">`;
+  return `<span class="avatar avatar-fallback ${cls}" title="${esc(nome)}">${esc(iniciais(nome))}</span>`;
+}
+function avatarsEquipe(t, cls = '') {
+  const nomes = [t.pist, t.enc1, t.enc2].filter(Boolean);
+  return `<span class="avatars ${cls}">${nomes.map(n => avatar(n)).join('')}</span>`;
+}
+
 function encaixadores(t) { return t.enc2 ? [t.enc1, t.enc2] : [t.enc1]; }
 function funcoesTxt(t) {
   if (t.tipo === 1) return `P: ${t.pist} · E: ${t.enc1}`;
@@ -112,7 +139,26 @@ document.querySelectorAll('nav button').forEach(b => b.addEventListener('click',
 // ---------- Cronômetro manual: seleção ----------
 function fillSelect(el, value, vazio = '— escolher —') {
   el.innerHTML = `<option value="">${vazio}</option>` +
-    db.mecanicos.map(m => `<option ${m === value ? 'selected' : ''}>${esc(m)}</option>`).join('');
+    db.mecanicos.map(m => `<option value="${esc(m)}" ${m === value ? 'selected' : ''}>${esc(m)}</option>`).join('');
+}
+function facePicker(containerId, selectId, { allowEmpty = false } = {}) {
+  const box = $(containerId);
+  if (!box) return;
+  const cur = $(selectId).value;
+  box.dataset.allowEmpty = allowEmpty ? '1' : '';
+  box.innerHTML = (allowEmpty
+    ? `<button type="button" class="face ${cur === '' ? 'on' : ''}" data-nome="" title="Nenhum"><span class="avatar avatar-fallback sm">—</span><span class="face-name">Nenhum</span></button>`
+    : '') +
+    db.mecanicos.map(m => `<button type="button" class="face ${m === cur ? 'on' : ''}" data-nome="${esc(m)}" title="${esc(m)}">${avatar(m)}<span class="face-name">${esc(m)}</span></button>`).join('');
+}
+function bindFacePicker(containerId, selectId) {
+  $(containerId)?.addEventListener('click', e => {
+    const btn = e.target.closest('.face');
+    if (!btn) return;
+    $(selectId).value = btn.dataset.nome;
+    $(selectId).dispatchEvent(new Event('change'));
+    facePicker(containerId, selectId, { allowEmpty: $(containerId).dataset.allowEmpty === '1' });
+  });
 }
 function renderSelecao() {
   document.querySelectorAll('#tipoSeg button').forEach(b => b.classList.toggle('active', +b.dataset.tipo === sel.tipo));
@@ -120,6 +166,9 @@ function renderSelecao() {
   fillSelect($('#selPist'), sel.pist);
   fillSelect($('#selEnc1'), sel.enc1);
   fillSelect($('#selEnc2'), sel.enc2);
+  facePicker('#facesPist', '#selPist');
+  facePicker('#facesEnc1', '#selEnc1');
+  facePicker('#facesEnc2', '#selEnc2');
   const t2 = sel.tipo === 2;
   $('#wrapUnico').style.display = t2 ? '' : 'none';
   $('#wrapEnc2').style.display = t2 && !sel.unico ? '' : 'none';
@@ -264,7 +313,7 @@ function champCard(dia, tipo) {
   const b = r[0];
   const media = r.reduce((s, t) => s + t.ms, 0) / r.length;
   return `<div class="card champ"><h2>Mais rápido · ${TIPOS[tipo]}</h2>
-    <div class="time">${fmt(b.ms)} s</div>
+    <div class="champ-top">${avatarsEquipe(b, 'lg')}<div class="time">${fmt(b.ms)} s</div></div>
     <div class="team">${esc(equipeTxt(b))}</div>
     <div class="meta">às ${hora(b.ts)} · ${r.length} válidas de ${total} · média do dia ${fmt(media)} s
     ${b.video ? `<button class="btn small" data-video="${b.id}">Ver vídeo</button>` : ''}</div></div>`;
@@ -273,7 +322,8 @@ function rankTable(dia, tipo, limite) {
   const r = ranking(dia, tipo).slice(0, limite || 999);
   if (!r.length) return '<div class="empty">Sem tentativas.</div>';
   return `<table><tr><th>#</th><th>Tempo</th><th>Equipe</th><th>Hora</th></tr>` +
-    r.map((t, i) => `<tr class="${i === 0 ? 'pos1' : ''}"><td>${i + 1}º</td><td class="num">${fmt(t.ms)}</td><td>${esc(equipeTxt(t))}</td><td>${hora(t.ts)}</td></tr>`).join('') +
+    r.map((t, i) => `<tr class="${i === 0 ? 'pos1' : ''}"><td>${i + 1}º</td><td class="num">${fmt(t.ms)}</td>
+      <td><div class="who">${avatarsEquipe(t)}<span>${esc(equipeTxt(t))}</span></div></td><td>${hora(t.ts)}</td></tr>`).join('') +
     `</table>`;
 }
 function mecStats(dia) {
@@ -284,7 +334,7 @@ function mecStats(dia) {
       const media = r.reduce((s, t) => s + t.ms, 0) / r.length;
       return `<td class="num">${fmt(r[0].ms)}</td><td class="num">${fmt(media)}</td><td>${r.length}</td>`;
     };
-    return `<tr><td>${esc(m)}</td>${cel(1)}${cel(2)}</tr>`;
+    return `<tr><td><div class="who">${avatar(m)}<span>${esc(m)}</span></div></td>${cel(1)}${cel(2)}</tr>`;
   }).join('');
   return `<table><tr><th>Mecânico</th><th>Melhor T1</th><th>Média T1</th><th>Qtd T1</th><th>Melhor T2</th><th>Média T2</th><th>Qtd T2</th></tr>${rows}</table>`;
 }
@@ -315,7 +365,7 @@ function renderHistorico() {
   $('#histTable').innerHTML = `<table><tr><th>Data</th><th>Hora</th><th>Tipo</th><th>Equipe</th><th>Tempo</th><th>Início</th><th>Obs.</th><th></th></tr>` +
     lista.map(t => `<tr class="${t.valida ? '' : 'invalid'}">
       <td>${dayKey(t.ts).split('-').reverse().join('/')}</td><td>${hora(t.ts)}</td><td>${t.tipo}</td>
-      <td>${esc(equipeTxt(t))}</td><td class="num">${fmt(t.ms)}</td>
+      <td><div class="who">${avatarsEquipe(t)}<span>${esc(equipeTxt(t))}</span></div></td><td class="num">${fmt(t.ms)}</td>
       <td><span class="badge">${MODOS[t.modo] || t.modo}</span></td>
       <td>${t.valida ? '' : '<span class="badge inv">inválida</span> '}${esc(t.obs)}</td>
       <td class="actions">${t.video ? `<button class="btn small" data-video="${t.id}">Vídeo</button> ` : ''}
@@ -369,20 +419,24 @@ $('#importJson').addEventListener('change', async e => {
 
 // ---------- Mecânicos e equipes ----------
 function renderMecanicos() {
-  $('#mecList').innerHTML = db.mecanicos.map(m => `<span class="chip">${esc(m)}<button data-rm="${esc(m)}" title="Remover">✕</button></span>`).join('')
-    || '<div class="empty">Nenhum mecânico cadastrado.</div>';
+  $('#mecList').innerHTML = db.mecanicos.map(m =>
+    `<span class="chip chip-foto">${avatar(m)}<span>${esc(m)}</span>${FOTOS[m] ? '' : `<button data-rm="${esc(m)}" title="Remover">✕</button>`}</span>`
+  ).join('') || '<div class="empty">Nenhum mecânico cadastrado.</div>';
   const keep = id => $(id).value;
   const [p, e1, e2] = [keep('#eqPist'), keep('#eqEnc1'), keep('#eqEnc2')];
   fillSelect($('#eqPist'), p);
   fillSelect($('#eqEnc1'), e1);
   fillSelect($('#eqEnc2'), e2, '— nenhum (único) —');
+  facePicker('#eqFacesPist', '#eqPist');
+  facePicker('#eqFacesEnc1', '#eqEnc1');
+  facePicker('#eqFacesEnc2', '#eqEnc2', { allowEmpty: true });
   const t2 = $('#eqTipo').value === '2';
   $('#eqWrapEnc2').style.display = t2 ? '' : 'none';
   $('#eqHint').style.display = t2 ? '' : 'none';
   $('#eqLblEnc1').textContent = t2 ? 'Encaixador 1' : 'Encaixador';
   $('#eqList').innerHTML = db.equipes.length
     ? `<table><tr><th>Equipe</th><th>Tipo</th><th>Funções</th><th></th></tr>` +
-      db.equipes.map(q => `<tr><td><b>${esc(q.nome)}</b></td><td>${TIPOS[q.tipo]}</td><td>${esc(funcoesTxt(q))}</td>
+      db.equipes.map(q => `<tr><td><div class="who">${avatarsEquipe(q)}<b>${esc(q.nome)}</b></div></td><td>${TIPOS[q.tipo]}</td><td>${esc(funcoesTxt(q))}</td>
         <td class="actions"><button class="btn small danger" data-rmeq="${q.id}">Remover</button></td></tr>`).join('') + `</table>`
     : '<div class="empty">Nenhuma equipe criada. As equipes aparecem como botões na tela Automático.</div>';
 }
@@ -433,7 +487,8 @@ function renderTvBoards() {
   $('#tvBoards').innerHTML = [1, 2].map(tp => {
     const r = ranking(dia, tp);
     const lider = r[0] ? `<div class="champ" style="padding:12px;border-radius:12px;margin-bottom:12px">
-        <div class="time">${fmt(r[0].ms)} s</div><div class="team">${esc(equipeTxt(r[0]))}</div></div>` : '';
+        <div class="champ-top">${avatarsEquipe(r[0], 'lg')}<div class="time">${fmt(r[0].ms)} s</div></div>
+        <div class="team">${esc(equipeTxt(r[0]))}</div></div>` : '';
     return `<div class="card"><h2>${TIPOS[tp]}</h2>${lider}${rankTable(dia, tp, 5)}</div>`;
   }).join('');
 }
@@ -469,7 +524,15 @@ window.addEventListener('storage', e => { if (e.key === STORAGE_KEY) { db = load
 // ---------- Inicialização ----------
 const auto = initAuto({
   db: () => db, save, salvarTentativa, salvarVideo, equipeTxt, funcoesTxt, fmt, esc, broadcast, TIPOS,
+  avatar, avatarsEquipe,
 });
+
+bindFacePicker('#facesPist', '#selPist');
+bindFacePicker('#facesEnc1', '#selEnc1');
+bindFacePicker('#facesEnc2', '#selEnc2');
+bindFacePicker('#eqFacesPist', '#eqPist');
+bindFacePicker('#eqFacesEnc1', '#eqEnc1');
+bindFacePicker('#eqFacesEnc2', '#eqEnc2');
 
 function renderAll() {
   if (isTv) { renderTvBoards(); return; }
@@ -484,4 +547,5 @@ function renderAll() {
 if (isTv) document.body.classList.add('tv');
 $('#rankDate').value = hoje();
 $('#histDate').value = hoje();
+save(); // persiste a lista completa de mecânicos com retrato
 renderAll();

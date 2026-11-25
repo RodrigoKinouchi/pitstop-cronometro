@@ -1,2 +1,8 @@
 __pycache__/
 *.pyc
+docs/membros/
+docs/assets/
+*.mov
+.DS_Store
+.venv/
+tools/

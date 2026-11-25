@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#ffcc00">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Pit Stop – Cronômetro de Treino</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -113,10 +119,22 @@
         </div>
       </div>
       <div class="row">
-        <label>Pistoleiro <select id="selPist"></select></label>
-        <label><span id="lblEnc1">Encaixador</span> <select id="selEnc1"></select></label>
-        <label id="wrapEnc2">Encaixador 2 <select id="selEnc2"></select></label>
         <label class="check" id="wrapUnico"><input type="checkbox" id="chkUnico"> Encaixador único</label>
+      </div>
+      <div class="roleBlock">
+        <div class="roleTitle">Pistoleiro</div>
+        <select id="selPist" class="sr-select"></select>
+        <div class="faces" id="facesPist"></div>
+      </div>
+      <div class="roleBlock">
+        <div class="roleTitle" id="lblEnc1">Encaixador</div>
+        <select id="selEnc1" class="sr-select"></select>
+        <div class="faces" id="facesEnc1"></div>
+      </div>
+      <div class="roleBlock" id="wrapEnc2">
+        <div class="roleTitle">Encaixador 2</div>
+        <select id="selEnc2" class="sr-select"></select>
+        <div class="faces" id="facesEnc2"></div>
       </div>
     </div>
 
@@ -166,12 +184,24 @@
       <div class="row" style="margin-bottom:14px">
         <label>Nome da equipe <input type="text" id="eqNome" placeholder="Ex.: Equipe Azul"></label>
         <label>Tipo <select id="eqTipo"><option value="1">Tipo 1 · 1 pneu</option><option value="2">Tipo 2 · 2 pneus</option></select></label>
-        <label>Pistoleiro <select id="eqPist"></select></label>
-        <label><span id="eqLblEnc1">Encaixador</span> <select id="eqEnc1"></select></label>
-        <label id="eqWrapEnc2">Encaixador 2 <select id="eqEnc2"></select></label>
         <button class="btn primary" id="eqAdd">Criar equipe</button>
       </div>
-      <div class="hint" id="eqHint">No Tipo 2, deixe o Encaixador 2 vazio para equipes com encaixador único.</div>
+      <div class="roleBlock">
+        <div class="roleTitle">Pistoleiro</div>
+        <select id="eqPist" class="sr-select"></select>
+        <div class="faces" id="eqFacesPist"></div>
+      </div>
+      <div class="roleBlock">
+        <div class="roleTitle" id="eqLblEnc1">Encaixador</div>
+        <select id="eqEnc1" class="sr-select"></select>
+        <div class="faces" id="eqFacesEnc1"></div>
+      </div>
+      <div class="roleBlock" id="eqWrapEnc2">
+        <div class="roleTitle">Encaixador 2 (ou “Nenhum” se for único)</div>
+        <select id="eqEnc2" class="sr-select"></select>
+        <div class="faces" id="eqFacesEnc2"></div>
+      </div>
+      <div class="hint" id="eqHint">No Tipo 2, toque em “Nenhum” no Encaixador 2 para equipes com encaixador único.</div>
       <div id="eqList" style="margin-top:12px"></div>
     </div>
     <div class="card">
