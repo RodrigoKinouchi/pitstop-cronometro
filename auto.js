@@ -1,7 +1,7 @@
 let FilesetResolver, PoseLandmarker;
 
 const DEFAULTS = {
-  camId: '', micId: '', model: 'lite', arm: 'cabeca', hold: 3, minS: 1.5, maxS: 20,
+  camId: '', facing: 'environment', micId: '', model: 'lite', arm: 'cabeca', hold: 3, minS: 1.5, maxS: 20,
   delayMin: 1.5, delayMax: 3.5, rearmS: 0, offsetMs: 0, clips: true,
   gunCheck: true, gunThr: 45, roi: null, ref: null, showRef: true, equipeId: '',
 };
@@ -79,12 +79,62 @@ export function initAuto(api) {
   }
 
   // ---------- Câmera e detector ----------
+  async function cameras() {
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    return devs.filter(d => d.kind === 'videoinput');
+  }
+  function pareceTraseira(label = '') {
+    return /back|rear|environment|world|traseir|posterior|0,\s*facing\s*back/i.test(label);
+  }
+  function pareceFrontal(label = '') {
+    return /front|user|facing\s*front|frontal|selfie/i.test(label);
+  }
+  async function preferirTraseiraSeVazio() {
+    if (C.camId) return;
+    const cams = await cameras();
+    if (!cams.length) return;
+    const traseira = cams.find(c => pareceTraseira(c.label));
+    const naoFrontal = cams.find(c => c.label && !pareceFrontal(c.label));
+    // Em muitos Chromebooks a traseira é a 2ª da lista quando os nomes vêm genéricos.
+    C.camId = (traseira || naoFrontal || cams[cams.length > 1 ? 1 : 0]).deviceId;
+    C.facing = 'environment';
+    saveCfg();
+  }
+  function videoConstraints() {
+    const base = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
+    if (C.camId) return { ...base, deviceId: { exact: C.camId } };
+    return { ...base, facingMode: { ideal: C.facing || 'environment' } };
+  }
   async function listarDispositivos() {
     const devs = await navigator.mediaDevices.enumerateDevices();
     const opt = (list, cur, nome) => '<option value="">Padrão do sistema</option>' + list.map((d, i) =>
       `<option value="${d.deviceId}" ${d.deviceId === cur ? 'selected' : ''}>${api.esc(d.label || `${nome} ${i + 1}`)}</option>`).join('');
     $('#cfgCam').innerHTML = opt(devs.filter(d => d.kind === 'videoinput'), C.camId, 'Câmera');
     $('#cfgMic').innerHTML = opt(devs.filter(d => d.kind === 'audioinput'), C.micId, 'Microfone');
+  }
+  async function inverterCamera() {
+    const cams = await cameras();
+    if (cams.length < 2) {
+      // Sem lista de devices: alterna facingMode
+      C.facing = C.facing === 'environment' ? 'user' : 'environment';
+      C.camId = '';
+      saveCfg();
+      status(C.facing === 'environment' ? 'Tentando câmera traseira…' : 'Tentando câmera frontal…');
+      await ligar();
+      return;
+    }
+    let i = Math.max(0, cams.findIndex(c => c.deviceId === C.camId));
+    if (!C.camId) {
+      // Se abriu pela facingMode, descobre qual device está ativo
+      const atual = S.stream?.getVideoTracks?.()[0]?.getSettings?.().deviceId;
+      i = Math.max(0, cams.findIndex(c => c.deviceId === atual));
+    }
+    const next = cams[(i + 1) % cams.length];
+    C.camId = next.deviceId;
+    C.facing = pareceFrontal(next.label) ? 'user' : 'environment';
+    saveCfg();
+    status(`Trocando para: ${next.label || 'outra câmera'}…`);
+    await ligar();
   }
 
   async function carregarModelo() {
@@ -113,18 +163,51 @@ export function initAuto(api) {
     actx();
     status('Abrindo câmera…');
     try {
-      S.stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: C.camId ? { exact: C.camId } : undefined, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 60 } },
-      });
+      // Primeira abertura libera os labels dos devices; aí preferimos a traseira.
+      if (!C.camId) {
+        try {
+          const probe = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+          probe.getTracks().forEach(t => t.stop());
+          await preferirTraseiraSeVazio();
+        } catch { /* segue com as constraints normais */ }
+      }
+      S.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints() });
     } catch (e) {
-      status('Não foi possível abrir a câmera: ' + e.message);
-      return;
+      // Fallback: tenta a outra câmera da lista
+      try {
+        C.camId = '';
+        C.facing = C.facing === 'environment' ? 'user' : 'environment';
+        S.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints() });
+      } catch (e2) {
+        status('Não foi possível abrir a câmera: ' + e.message);
+        return;
+      }
     }
     video.srcObject = S.stream;
     await video.play();
     $('#camOff').style.display = 'none';
     await ligarMic();
     await listarDispositivos();
+    {
+      const track = S.stream.getVideoTracks()[0];
+      const ativo = track?.getSettings?.().deviceId || '';
+      const label = track?.label || '';
+      const cams = await cameras();
+      const antes = C.camId;
+      await preferirTraseiraSeVazio();
+      const traseira = cams.find(c => pareceTraseira(c.label));
+      if (traseira && pareceFrontal(label)) C.camId = traseira.deviceId;
+      // Chromebook: se há 2+ câmeras e ainda estamos na primeira (geralmente frontal), vai para a outra
+      if (!traseira && cams.length >= 2 && pareceFrontal(label)) C.camId = cams.find(c => c.deviceId !== ativo)?.deviceId || C.camId;
+      if (C.camId && C.camId !== ativo && C.camId !== antes) {
+        saveCfg();
+        track.stop();
+        S.stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints() });
+        video.srcObject = S.stream;
+        await video.play();
+        await listarDispositivos();
+      } else if (C.camId !== antes) saveCfg();
+    }
     try { await carregarModelo(); }
     catch (e) { status('Erro ao carregar o detector: ' + e.message); return; }
     S.running = true;
@@ -416,6 +499,7 @@ export function initAuto(api) {
   $('#cfgCam').addEventListener('change', e => { C.camId = e.target.value; saveCfg(); if (S.running) ligar(); });
   $('#cfgMic').addEventListener('change', e => { C.micId = e.target.value; saveCfg(); if (S.running) ligarMic(); });
   $('#camStart').addEventListener('click', ligar);
+  $('#camFlip').addEventListener('click', () => inverterCamera());
   $('#camStop').addEventListener('click', () => { desligar(); status('Câmera desligada.'); });
   $('#autoBtn').addEventListener('pointerdown', e => { e.preventDefault(); pronto(); });
   $('#teamTiles').addEventListener('click', e => {
