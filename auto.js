@@ -1,7 +1,7 @@
 let FilesetResolver, PoseLandmarker;
 
 const DEFAULTS = {
-  camId: '', facing: 'environment', camManual: false, micId: '', model: 'lite', arm: 'cabeca', hold: 3, minS: 1.5, maxS: 20,
+  camId: '', facing: 'user', camManual: false, micId: '', model: 'lite', arm: 'cabeca', hold: 3, minS: 1.5, maxS: 20,
   delayMin: 1.5, delayMax: 3.5, rearmS: 0, offsetMs: 0, clips: true,
   gunCheck: true, gunThr: 45, roi: null, ref: null, showRef: true, equipeId: '',
 };
@@ -100,14 +100,15 @@ export function initAuto(api) {
     const s = t.getSettings?.() || {};
     return { id: s.deviceId || '', label: t.label || '', facing: s.facingMode || '' };
   }
-  async function escolherTraseiraInicial() {
+  async function escolherCameraInicial() {
     if (C.camManual) return;
     const cams = await cameras();
     if (!cams.length) return;
-    const traseira = cams.find(c => pareceTraseira(c.label));
-    if (traseira) { C.camId = traseira.deviceId; C.facing = 'environment'; return; }
-    // Sem nome claro: em tablets costuma ser a 2ª da lista
-    if (cams.length >= 2) { C.camId = cams[1].deviceId; C.facing = 'environment'; }
+    // Padrão: frontal — tablet funciona como painel na frente da dupla
+    const frontal = cams.find(c => pareceFrontal(c.label));
+    if (frontal) { C.camId = frontal.deviceId; C.facing = 'user'; return; }
+    C.camId = cams[0].deviceId;
+    C.facing = 'user';
   }
   async function listarDispositivos() {
     const devs = await navigator.mediaDevices.enumerateDevices();
@@ -148,17 +149,8 @@ export function initAuto(api) {
         return;
       }
 
-      // 2) Só 1 device na lista: tenta facingMode exact (comum em alguns Chromebooks)
-      const alvo = (atual.facing === 'environment' || C.facing === 'environment') ? 'user' : 'environment';
-      C.facing = alvo;
-      C.camId = '';
-      saveCfg();
-      try {
-        await ligar({ pularAutoTraseira: true, facingExact: alvo });
-        status(alvo === 'environment' ? 'Câmera traseira' : 'Câmera frontal');
-      } catch {
-        status('Este tablet só expõe uma câmera para o navegador. Em Configuração → Câmera, veja se aparece outra.');
-      }
+      // 2) Só 1 device (seu Chromebook): não dá para inverter no sistema
+      status('Neste tablet a câmera traseira não está disponível (mesmo no app nativo). Usando a frontal — ideal para o painel.');
     } catch (e) {
       status('Falha ao inverter: ' + (e.message || e));
     } finally {
@@ -195,10 +187,10 @@ export function initAuto(api) {
       // Libera permissão e labels
       if (!C.camId && !C.camManual) {
         try {
-          const probe = await abrirStream({ facingMode: { ideal: 'environment' } });
+          const probe = await abrirStream({ facingMode: { ideal: 'user' } });
           probe.getTracks().forEach(t => t.stop());
           await listarDispositivos();
-          if (!opts.pularAutoTraseira) await escolherTraseiraInicial();
+          if (!opts.pularAutoTraseira) await escolherCameraInicial();
           saveCfg();
         } catch { /* segue */ }
       }
@@ -215,19 +207,17 @@ export function initAuto(api) {
         throw e2;
       }
     }
-    // Primeira ligação sem escolha manual: se veio frontal e existe outra, troca
+    // Primeira ligação: se não veio a frontal e ela existe na lista, troca
     if (!C.camManual && !opts.pularAutoTraseira) {
       const cams = await cameras();
       const ativo = cameraAtiva();
-      if (cams.length >= 2 && (pareceFrontal(ativo.label) || ativo.facing === 'user')) {
-        const outra = cams.find(c => c.deviceId !== ativo.id) || cams[1];
-        if (outra) {
-          C.camId = outra.deviceId;
-          C.facing = 'environment';
-          saveCfg();
-          S.stream.getTracks().forEach(t => t.stop());
-          S.stream = await abrirStream(videoConstraints());
-        }
+      const frontal = cams.find(c => pareceFrontal(c.label));
+      if (frontal && frontal.deviceId !== ativo.id && (pareceTraseira(ativo.label) || ativo.facing === 'environment')) {
+        C.camId = frontal.deviceId;
+        C.facing = 'user';
+        saveCfg();
+        S.stream.getTracks().forEach(t => t.stop());
+        S.stream = await abrirStream(videoConstraints());
       }
     }
     video.srcObject = S.stream;
